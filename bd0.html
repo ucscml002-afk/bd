@@ -147,7 +147,7 @@ body{
 .btn-next:active{transform:scale(.97);background:rgba(192,65,90,.3)}
 
 /* ── BALLOON SCREEN ── */
-#popscreen{position:fixed;inset:0;z-index:10;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#popscreen{position:fixed;inset:0;z-index:10;overflow:visible;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 #popscreen.hidden{opacity:0;pointer-events:none;transform:scale(.96)}
 .pop-header{
   position:absolute;top:0;left:0;right:0;
@@ -169,7 +169,7 @@ body{
   left:0;right:0;text-align:center;z-index:15;pointer-events:none;
   transition:all .5s ease;
 }
-#blayer{position:absolute;inset:0;z-index:12;pointer-events:none;overflow:hidden;}
+#blayer{position:absolute;inset:0;z-index:12;pointer-events:none;overflow:visible;}
 
 /* ── BALLOON SHAPE ── */
 .balloon{
@@ -826,20 +826,19 @@ function launchAllBalloons(){
   const layer=document.getElementById('blayer');
   layer.innerHTML='';
 
-  // stagger positions — better spacing on mobile
-  const W=window.innerWidth;
-  const bw=Math.min(80,W*0.16);
-  const pad=bw*0.5+8;
-  const span=W-pad*2;
-  const step=span/4;
-  const positions=[0,1,2,3,4].map(i=>pad+i*step);
+  // 5 equal slots across full width — balloon center = middle of each slot
+  const W = window.innerWidth;
+  const slotW = W / 5;
+  const bHalf = Math.min(44, W * 0.09); // half balloon width, stay inside
+  const positions = [0,1,2,3,4].map(i =>
+    Math.max(bHalf + 2, Math.min(W - bHalf - 2, slotW * i + slotW / 2))
+  );
 
   Qs.forEach((q,i)=>{
     const b=document.createElement('div');
     b.className='balloon rise';
     const dur=3.2+i*0.25+Math.random()*.4;
-    const bx=(Math.random()>.5?1:-1)*(5+Math.random()*12);
-    b.style.cssText=`left:${positions[i]}px;transform:translateX(-50%);background:${q.balloon.bg};--rd:${dur}s;--bx:${bx}px;`;
+    b.style.cssText=`left:${positions[i]}px;transform:translateX(-50%);background:${q.balloon.bg};--rd:${dur}s;--bx:0px;`;
     // Shine overlay
     const shine=document.createElement('div');shine.className='balloon-shine';
     b.appendChild(shine);
@@ -851,12 +850,12 @@ function launchAllBalloons(){
     playRise(i);
 
     b.addEventListener('animationend',()=>{
-      // Anchor at floating position
-      const rect=b.getBoundingClientRect();
+      // Anchor using the original slot center (already clamped), not getBoundingClientRect
+      // which could reflect drift
       b.style.animation='none';
       b.style.bottom='auto';
-      b.style.top=(rect.top)+'px';
-      b.style.left=(rect.left+rect.width/2)+'px';
+      b.style.top = Math.round(window.innerHeight * 0.18) + 'px';
+      b.style.left = positions[i] + 'px';
       b.style.transform='translateX(-50%)';
       void b.offsetWidth;
       b.classList.add('bob','hoverable');
